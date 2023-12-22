@@ -2,7 +2,6 @@ import os
 import json
 import numpy as np
 import math
-import re
 from collections import Counter
 import string
 

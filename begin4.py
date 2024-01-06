@@ -4,6 +4,31 @@ import numpy as np
 import math
 from collections import Counter
 import string
+from sklearn.decomposition import PCA
+import matplotlib.pyplot as plt
+from sklearn.cluster import KMeans
+
+
+def cluster_and_visualize(document_vectors_2D, query_vector, doc_vectors):
+    n_clusters = 3
+    kmeans = KMeans(n_clusters=n_clusters, random_state=42)
+    cluster_labels = kmeans.fit_predict(doc_vectors)
+
+    plt.figure(figsize=(10, 8))
+
+    for cluster_label in range(n_clusters):
+        cluster_points = document_vectors_2D[cluster_labels == cluster_label]
+        plt.scatter(
+            cluster_points[:, 0], cluster_points[:, 1], label=f'Cluster {cluster_label}')
+
+    plt.scatter(query_vector[0], query_vector[1],
+                color='red', marker='*', s=200, label='Query')
+
+    plt.title('PCA Visualization with Clustering of Document Vectors')
+    plt.xlabel('Principal Component 1')
+    plt.ylabel('Principal Component 2')
+    plt.legend()
+    plt.show()
 
 
 def load_data(json_file_path):
@@ -60,9 +85,11 @@ def split_into_paragraphs(document):
 
 
 def main():
+
     json_file_path = 'data.json'
     data = load_data(json_file_path)
-    for i in range(101):
+    for i in range(4, 9):
+        pca = PCA(n_components=2)
         query_data = data[i]
         query = query_data['query']
         candidate_documents = query_data['candidate_documents_id']
@@ -80,6 +107,7 @@ def main():
         top_5_terms = []
         j = 0
         k = candidate_documents[j]
+        doc_vectors = []
         for document in documents:
             j = j + 1
             document = document.translate(
@@ -89,7 +117,7 @@ def main():
 
             sorted_tfidf = sorted(enumerate(doc_vector),
                                   key=lambda x: x[1], reverse=True)
-
+            doc_vectors.append(doc_vector)
             all_terms_list = list(all_terms)
             top_5_terms = [all_terms_list[index]
                            for index, _ in sorted_tfidf[:5]]
@@ -100,8 +128,9 @@ def main():
             most_repeated_words = Counter(term_counts).most_common(5)
             similarity = cos_similarity(query_vector, doc_vector)
             similarity_values.append(similarity)
-
         most_similar_document_index = np.argmax(similarity_values)
+        document_vectors_2D = pca.fit_transform(np.array(doc_vectors))
+        cluster_and_visualize(document_vectors_2D, query_vector, doc_vectors)
 
         paragraphs = load_documents(
             [candidate_documents[most_similar_document_index]])
